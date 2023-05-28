@@ -13,6 +13,9 @@ def cleanup():
     for file in video_filenames:
         os.remove(file)
 
+# have a place of links that failed
+failedLinks = []
+
 def saveFailedLinks():
     if len(failedLinks) > 0:
         with open("failedLinks", "w") as file:
@@ -38,8 +41,6 @@ api_version = "v3"
 youtube = build(api_service_name, api_version, credentials=credentials)
 
 
-# have a place of links that failed
-failedLinks = []
 
 def _makePlaylist(playlist_title, playlist_description):
     """
@@ -133,77 +134,8 @@ def reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = 
         video_links = file.read().splitlines()
 
     ## Download videos using pytube
-    for link in video_links:
-        maxRetries = 100
-        retries = 0
-        while retries < maxRetries:
-            try:
-                video = YouTube(link)
-                video_title = video.title
-                video_description = video.description
-                highres = video.streams.get_highest_resolution()
-                highres.download()
-            except Exception as e:
-                print("Error downloading video:", e , " retrying...")
-                retries += 1
-            else:
-                break
-
-        if retries == maxRetries:
-            failedLinks.append(link)
-            print("Failed to download video:", link)
-            continue
-
-        print("downloaded video:", video_title)
-
-        # get the vid name *.mp4
-        video_filename = glob.glob("*.mp4")[0]
-        
-        # upload vid
-        _uploadSingleVid(video_filename, video_title, video_description, link, playlistID)
-            
-        # Delete the video file
-        os.remove(video_filename)
-
-def reuploadFromExistingPlaylists():
-    """
-    Reuploads videos from existing playlists. It will reuse the original playlist's titles and descriptions.
-    """
-
-    # get all playlists from file
-    with open("playlistlinks", "r") as file:
-        playlist_links = file.read().splitlines()
-
-    for playlist_link in playlist_links:
-        # get playlist id from link
-        PlaylistID = playlist_link.split("list=")[1]
-
-        # get playlist title and description
-        playlistInfo = youtube.playlists().list(
-            part="snippet",
-            id=PlaylistID
-        ).execute()
-
-        playlist_title = playlistInfo["items"][0]["snippet"]["title"]
-        playlist_description = playlistInfo["items"][0]["snippet"]["description"]
-
-        # and now the videos
-        playlist_items = youtube.playlistItems().list(
-            part="snippet",
-            playlistId=PlaylistID,
-            maxResults=50
-        ).execute()
-
-        video_links = []
-        for item in playlist_items["items"]:
-            video_links.append(f"https://youtu.be/{item['snippet']['resourceId']['videoId']}")
-
-        # create own playlist
-        
-        ownPlaylistID = _makePlaylist(playlist_title, playlist_description)
-
-        ## Download videos using pytube
-        for link in video_links:
+    try:
+        for i, link in enumerate(video_links):
             maxRetries = 100
             retries = 0
             while retries < maxRetries:
@@ -230,10 +162,101 @@ def reuploadFromExistingPlaylists():
             video_filename = glob.glob("*.mp4")[0]
             
             # upload vid
-            _uploadSingleVid(video_filename, video_title, video_description, link, ownPlaylistID)
+            _uploadSingleVid(video_filename, video_title, video_description, link, playlistID)
                 
             # Delete the video file
             os.remove(video_filename)
+    except Exception as e:
+        # someting happened, save remaining links to file
+        with open("remainingLinks", "w") as file:
+            file.write("\n".join(video_links[i:]))
+        print("Remaining links saved to file: remainingLinks")
+        raise e
+
+def reuploadFromExistingPlaylists():
+    """
+    Reuploads videos from existing playlists. It will reuse the original playlist's titles and descriptions.
+    """
+
+    # get all playlists from file
+    with open("playlistlinks", "r") as file:
+        playlist_links = file.read().splitlines()
+
+    try:
+        for i, playlist_link in enumerate(playlist_links):
+            # get playlist id from link
+            PlaylistID = playlist_link.split("list=")[1]
+
+            # get playlist title and description
+            playlistInfo = youtube.playlists().list(
+                part="snippet",
+                id=PlaylistID
+            ).execute()
+
+            playlist_title = playlistInfo["items"][0]["snippet"]["title"]
+            playlist_description = playlistInfo["items"][0]["snippet"]["description"]
+
+            # and now the videos
+            playlist_items = youtube.playlistItems().list(
+                part="snippet",
+                playlistId=PlaylistID,
+                maxResults=50
+            ).execute()
+
+            video_links = []
+            for item in playlist_items["items"]:
+                video_links.append(f"https://youtu.be/{item['snippet']['resourceId']['videoId']}")
+
+            # create own playlist
+            
+            ownPlaylistID = _makePlaylist(playlist_title, playlist_description)
+
+            ## Download videos using pytube
+            try:
+                for j, link in enumerate(video_links):
+                    maxRetries = 100
+                    retries = 0
+                    while retries < maxRetries:
+                        try:
+                            video = YouTube(link)
+                            video_title = video.title
+                            video_description = video.description
+                            highres = video.streams.get_highest_resolution()
+                            highres.download()
+                        except Exception as e:
+                            print("Error downloading video:", e , " retrying...")
+                            retries += 1
+                        else:
+                            break
+
+                    if retries == maxRetries:
+                        failedLinks.append(link)
+                        print("Failed to download video:", link)
+                        continue
+
+                    print("downloaded video:", video_title)
+
+                    # get the vid name *.mp4
+                    video_filename = glob.glob("*.mp4")[0]
+                    
+                    # upload vid
+                    _uploadSingleVid(video_filename, video_title, video_description, link, ownPlaylistID)
+                        
+                    # Delete the video file
+                    os.remove(video_filename)
+            except Exception as e:
+                # someting happened, save remaining links to file
+                with open("remainingLinks", "w") as file:
+                    file.write("\n".join(video_links[j:]))
+                print("Remaining links saved to file: remainingLinks")
+                raise e
+    except Exception as e:
+        # someting happened, save remaining playlists to file
+        with open("remainingPlaylists", "w") as file:
+            file.write("\n".join(playlist_links[i:]))
+        print("Remaining playlists saved to file: remainingPlaylists")
+        raise e
+        
 
 
 
