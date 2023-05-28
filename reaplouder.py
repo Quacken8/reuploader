@@ -78,7 +78,7 @@ def _uploadSingleVid(video_filename, video_name, video_description, link, playli
     }
 
     response = None
-    media = MediaFileUpload(video_filename, chunksize=4*1024*1024, resumable=True)
+    media = MediaFileUpload(video_filename, chunksize=5*1024*1024, resumable=True)
     while response is None:
         try:
             response = youtube.videos().insert(
