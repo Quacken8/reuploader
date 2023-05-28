@@ -166,7 +166,7 @@ def reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = 
                 
             # Delete the video file
             os.remove(video_filename)
-    except Exception as e:
+    except (KeyboardInterrupt, Exception) as e:
         # someting happened, save remaining links to file
         with open("remainingLinks", "w") as file:
             file.write("\n".join(video_links[i:]))
@@ -244,13 +244,13 @@ def reuploadFromExistingPlaylists():
                         
                     # Delete the video file
                     os.remove(video_filename)
-            except Exception as e:
+            except (KeyboardInterrupt, Exception) as e:
                 # someting happened, save remaining links to file
                 with open("remainingLinks", "w") as file:
                     file.write("\n".join(video_links[j:]))
                 print("Remaining links saved to file: remainingLinks")
                 raise e
-    except Exception as e:
+    except (KeyboardInterrupt, Exception) as e:
         # someting happened, save remaining playlists to file
         with open("remainingPlaylists", "w") as file:
             file.write("\n".join(playlist_links[i:]))
