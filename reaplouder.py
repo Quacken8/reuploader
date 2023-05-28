@@ -121,13 +121,15 @@ def _uploadSingleVid(video_filename, video_name, video_description, link, playli
                 break
 
 
-def reuploadFromSeparateVidLinks(playlist_title, playlist_description):
-
+def reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "vidlinks"):
+    """
+    Reuploads videos from a text file containing video links. It will create a new playlist and upload the videos there.
+    """
     # create a playlist
     playlistID = _makePlaylist(playlist_title, playlist_description)
 
     # Read the text file containing video links
-    with open("vidlinks", "r") as file:
+    with open(source, "r") as file:
         video_links = file.read().splitlines()
 
     ## Download videos using pytube
@@ -163,7 +165,6 @@ def reuploadFromSeparateVidLinks(playlist_title, playlist_description):
         # Delete the video file
         os.remove(video_filename)
 
-
 def reuploadFromExistingPlaylists():
     """
     Reuploads videos from existing playlists. It will reuse the original playlist's titles and descriptions.
@@ -176,16 +177,23 @@ def reuploadFromExistingPlaylists():
     for playlist_link in playlist_links:
         # get playlist id from link
         PlaylistID = playlist_link.split("list=")[1]
+
+        # get playlist title and description
+        playlistInfo = youtube.playlists().list(
+            part="snippet",
+            id=PlaylistID
+        ).execute()
+
+        playlist_title = playlistInfo["items"][0]["snippet"]["title"]
+        playlist_description = playlistInfo["items"][0]["snippet"]["description"]
+
+        # and now the videos
         playlist_items = youtube.playlistItems().list(
             part="snippet",
             playlistId=PlaylistID,
             maxResults=50
         ).execute()
 
-        playlist_title = playlist_items["items"][0]["snippet"]["title"]
-        playlist_description = playlist_items["items"][0]["snippet"]["description"]
-
-        # get all video links
         video_links = []
         for item in playlist_items["items"]:
             video_links.append(f"https://youtu.be/{item['snippet']['resourceId']['videoId']}")
@@ -234,5 +242,18 @@ if __name__ == "__main__":
 
     playlist_title = "Principy počítačů (NSWI120)"
     playlist_description = "Záznam přednášek z roku 2020/2021. Přednáší Pavel Ježek."
+    reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "principyPocitacu")
 
-    reuploadFromSeparateVidLinks(playlist_title, playlist_description)
+    playlist_title = "Jazyk C# a platforma .NET (NPRG035) Přednáška"
+    playlist_description = "Záznam přednášek z roku 2020/2021. Přednáší Pavel Ježek."
+    reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "csharp")
+
+    playlist_title = "Jazyk C# a platforma .NET (NPRG035) Cvičení"
+    playlist_description = "Záznam cvičení z roku 2020/2021. Přednáší Pavel Ježek."
+    reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "ccvik")
+
+    playlist_title = "Language C# a platform .NET (NPRG035) Lecture"
+    playlist_description = "Recording of lectures from years 2020/2021. Given by Pavel Ježek."
+    reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "ceng")
+
+    reuploadFromExistingPlaylists()
