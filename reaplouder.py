@@ -106,20 +106,15 @@ def _uploadSingleVid(video_filename, video_name, video_description, link, playli
             ).execute()
             print("Added video to playlist:", video_name)
         except Exception as e:
-            if "HttpError 404" in str(e):
-                # Chunk upload failed, retry
-                print("Chunk upload failed. Retrying...")
-                continue
-            elif "quota" in str(e):
+            if "quota" in str(e):
                 # oh boy we hit daily quota already
                 print("Daily quota exceeded. going to sleep for 24 hours")
                 time.sleep(24*60*60)
                 continue
             else:
-                # Handle other exceptions
-                print("Error uploading video:", e)
-                failedLinks.append(link)
-                break
+                # Chunk upload failed, retry
+                print("Chunk upload failed. Retrying...")
+                continue
 
 
 def reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "vidlinks"):
