@@ -258,10 +258,6 @@ def reuploadFromExistingPlaylists():
 
 if __name__ == "__main__":
 
-    playlist_title = "Principy počítačů (NSWI120)"
-    playlist_description = "Záznam přednášek z roku 2020/2021. Přednáší Pavel Ježek."
-    reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "principyPocitacu")
-
     playlist_title = "Jazyk C# a platforma .NET (NPRG035) Přednáška"
     playlist_description = "Záznam přednášek z roku 2020/2021. Přednáší Pavel Ježek."
     reuploadFromSeparateVidLinks(playlist_title, playlist_description, source = "csharp")
